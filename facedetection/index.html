@@ -376,6 +376,32 @@
       }
     }
 
+    /* Add these mobile-specific styles */
+    @media (max-width: 768px) {
+      .container {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        margin: 0;
+      }
+      
+      .output_canvas {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+      
+      .motion-indicators {
+        padding: 12px;
+        gap: 8px;
+      }
+      
+      .indicator {
+        font-size: 0.9rem;
+        padding: 8px;
+      }
+    }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -514,13 +540,33 @@
     }
 
     function updateCanvasSize() {
-      // Get camera stream dimensions
       const stream = videoElement.srcObject;
       if (stream) {
         const track = stream.getVideoTracks()[0];
         const settings = track.getSettings();
-        canvasElement.width = settings.width;
-        canvasElement.height = settings.height;
+        
+        // Set canvas size based on video aspect ratio
+        const aspectRatio = settings.width / settings.height;
+        
+        // For mobile, use viewport dimensions
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+          const viewportWidth = Math.min(window.innerWidth, 1280);
+          const viewportHeight = Math.min(window.innerHeight, 720);
+          
+          if (window.innerHeight > window.innerWidth) {
+            // Portrait
+            canvasElement.width = viewportWidth;
+            canvasElement.height = viewportWidth / aspectRatio;
+          } else {
+            // Landscape
+            canvasElement.height = viewportHeight;
+            canvasElement.width = viewportHeight * aspectRatio;
+          }
+        } else {
+          // Desktop - use original dimensions
+          canvasElement.width = settings.width;
+          canvasElement.height = settings.height;
+        }
       }
     }
 
@@ -654,30 +700,42 @@
 
     container.classList.add('loading');
     
-    // Initialize camera with dynamic resolution and error handling
+    // Update camera initialization with better mobile handling
     navigator.mediaDevices.getUserMedia({ 
       video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        facingMode: "user"
+        facingMode: "user",
+        aspectRatio: { ideal: 1.777777778 }
       }
     })
     .then(stream => {
+      videoElement.srcObject = stream;
       const track = stream.getVideoTracks()[0];
       const settings = track.getSettings();
+      
+      // Update canvas size when orientation changes
+      window.addEventListener('resize', updateCanvasSize);
+      
       new Camera(videoElement, {
-        onFrame: async () => await faceMesh.send({image: videoElement}),
+        onFrame: async () => {
+          await faceMesh.send({image: videoElement});
+        },
         width: settings.width,
         height: settings.height
       }).start();
     })
     .catch(err => {
       console.error("Camera error:", err);
-      // Show error message to user
       const loadingText = document.querySelector('.loading-text');
-      loadingText.textContent = "Camera access denied. Please check permissions.";
+      loadingText.textContent = "Camera error: " + err.message;
       loadingText.style.color = "#ff4444";
     });
+
+    // Add CSS fix for mobile video element
+    videoElement.style.width = '100%';
+    videoElement.style.height = 'auto';
+    videoElement.style.objectFit = 'contain';
   </script>
 </body>
 </html>
