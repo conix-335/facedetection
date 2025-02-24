@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Face Motion Tracking</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&family=VT323&display=swap');
 
     * {
       margin: 0;
@@ -15,7 +15,7 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
+      background-color: #0a1810;
       color: white;
       min-height: 100vh;
       display: flex;
@@ -23,16 +23,97 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle animated background */
+    .bg-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.15;
+      background: linear-gradient(125deg, #002211, #001100);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+
+    .bg-particles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: rgba(0, 255, 0, 0.5);
+      border-radius: 50%;
+      animation: float 6s infinite;
+    }
+
+    @keyframes gradientBG {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.5;
+      }
+      100% {
+        transform: translateY(-100px) translateX(100px);
+        opacity: 0;
+      }
     }
 
     .container {
       width: 100%;
       max-width: 1280px;
       position: relative;
-      background-color: #1e293b;
-      border-radius: 16px;
+      background-color: rgba(10, 24, 16, 0.95);
+      border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                  0 0 30px rgba(0, 180, 100, 0.3);
+      border: 2px solid rgba(0, 180, 100, 0.2);
+      backdrop-filter: blur(10px);
+      transition: all 0.5s ease;
+      transform-origin: center;
+      animation: containerPulse 4s infinite;
+    }
+
+    @keyframes containerPulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                    0 0 30px rgba(0, 180, 100, 0.3);
+      }
+      50% {
+        transform: scale(1.02);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                    0 0 50px rgba(0, 180, 100, 0.4);
+      }
+    }
+
+    .container.initializing {
+      opacity: 0;
+      transform: scale(0.95);
     }
 
     .input_video {
@@ -45,6 +126,7 @@
       align-items: center;
       aspect-ratio: 16/9;
       width: 100%;
+      position: relative;
     }
 
     .output_canvas {
@@ -54,50 +136,287 @@
     }
 
     .motion-indicators {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin-top: 24px;
-      padding: 16px;
-      background-color: #1e293b;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 24px auto;
+      padding: 24px;
+      background-color: rgba(10, 24, 16, 0.95);
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      max-width: 800px;
+      border: 2px solid rgba(0, 180, 100, 0.2);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      animation: indicatorsPulse 3s infinite;
+    }
+
+    @keyframes indicatorsPulse {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .motion-indicators.show {
+      opacity: 1;
     }
 
     .indicator {
-      font-size: 1.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.2rem;
       font-weight: 600;
-      padding: 8px 24px;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-      background-color: #334155;
+      padding: 16px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      background-color: rgba(20, 40, 30, 0.8);
+      text-align: center;
+      text-shadow: 0 0 10px rgba(0, 180, 100, 0.3);
+      border: 1px solid rgba(0, 180, 100, 0.2);
+      animation: indicatorFloat 2s infinite;
     }
 
-    .indicator.active-left,
-    .indicator.active-right {
-      color: #22c55e;
-      background-color: #14532d;
+    @keyframes indicatorFloat {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-5px);
+      }
     }
 
-    .indicator.active-center {
-      color: #facc15;
-      background-color: #713f12;
+    .indicator.active {
+      color: #00b464;
+      background-color: rgba(0, 40, 0, 0.8);
+      box-shadow: 0 0 20px rgba(0, 180, 100, 0.4);
+      border-color: rgba(0, 180, 100, 0.4);
+      animation: activeIndicator 1s infinite;
+    }
+
+    @keyframes activeIndicator {
+      0%, 100% {
+        transform: scale(1);
+        text-shadow: 0 0 10px rgba(0, 180, 100, 0.6);
+      }
+      50% {
+        transform: scale(1.1);
+        text-shadow: 0 0 20px rgba(0, 180, 100, 0.8);
+      }
     }
 
     .indicator.inactive {
-      color: #64748b;
+      color: #2a5a40;
     }
 
-    .label-input {
-      margin-top: 20px;
-      padding: 10px;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 1px solid #64748b;
-      background-color: #1e293b;
-      color: white;
+    .id-display {
+      font-family: 'VT323', monospace;
+      font-size: 3.5rem;
+      color: #00b464;
+      text-shadow: 0 0 15px rgba(0, 180, 100, 0.6);
+      margin-bottom: 24px;
+      letter-spacing: 3px;
+      padding: 16px 32px;
+      background-color: rgba(10, 24, 16, 0.95);
+      border-radius: 16px;
+      border: 2px solid rgba(0, 180, 100, 0.3);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      position: relative;
+      animation: idDisplayFloat 3s infinite;
+    }
+
+    @keyframes idDisplayFloat {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-15px) rotate(1deg);
+      }
+    }
+
+    .id-display.show {
+      opacity: 1;
+      animation: glowPulse 2s infinite;
+    }
+
+    .id-display::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #00b464;
+      animation: scanline 2s linear infinite;
+    }
+
+    @keyframes scanline {
+      0% {
+        transform: translateY(0);
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-48px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes glowPulse {
+      0% {
+        text-shadow: 0 0 15px rgba(0, 180, 100, 0.6);
+      }
+      50% {
+        text-shadow: 0 0 25px rgba(0, 180, 100, 0.8);
+      }
+      100% {
+        text-shadow: 0 0 15px rgba(0, 180, 100, 0.6);
+      }
+    }
+
+    @keyframes numberShuffle {
+      0% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(-10px) scale(1.2);
+      }
+      100% {
+        transform: translateY(-20px) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .shuffling {
+      animation: numberShuffle 0.1s ease-out;
+    }
+
+    .loading-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Share Tech Mono', monospace;
+      color: #00b464;
+      font-size: 1.5rem;
+      text-shadow: 0 0 10px rgba(0, 180, 100, 0.5);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading .loading-text {
+      opacity: 1;
+      animation: loadingPulse 1.5s infinite;
+    }
+
+    @keyframes loadingPulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.3;
+      }
+    }
+
+    .init-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a1810;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: all 0.5s ease;
+    }
+
+    .init-screen.hide {
+      opacity: 0;
+      transform: scale(1.1);
+      pointer-events: none;
+    }
+
+    .init-text {
+      font-family: 'VT323', monospace;
+      font-size: 2.5rem;
+      color: #00b464;
+      text-shadow: 0 0 15px rgba(0, 180, 100, 0.6);
+      margin-bottom: 2rem;
+      letter-spacing: 2px;
+      animation: initTextGlow 2s infinite;
+    }
+
+    @keyframes initTextGlow {
+      0%, 100% {
+        text-shadow: 0 0 15px rgba(0, 180, 100, 0.6);
+      }
+      50% {
+        text-shadow: 0 0 30px rgba(0, 180, 100, 0.8);
+      }
+    }
+
+    .progress-bar {
       width: 300px;
-      text-align: center;
+      height: 4px;
+      background: rgba(0, 180, 100, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress {
+      width: 0%;
+      height: 100%;
+      background: #00b464;
+      transition: width 0.3s ease;
+      position: relative;
+      animation: progressPulse 1s infinite;
+    }
+
+    @keyframes progressPulse {
+      0%, 100% {
+        filter: brightness(1);
+      }
+      50% {
+        filter: brightness(1.5);
+      }
+    }
+
+    .progress::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, #00b464);
+      animation: progressGlow 1s linear infinite;
+    }
+
+    @keyframes progressGlow {
+      0% {
+        opacity: 0.5;
+        transform: translateX(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateX(-10px);
+      }
+      100% {
+        opacity: 0.5;
+        transform: translateX(-20px);
+      }
     }
 
   </style>
@@ -106,28 +425,109 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <input type="text" class="label-input" placeholder="Enter label...">
+  <div class="bg-animation">
+    <div class="bg-particles"></div>
+  </div>
+  <div class="init-screen">
+    <div class="init-text">SYSTEM INITIALIZATION</div>
+    <div class="progress-bar">
+      <div class="progress"></div>
+    </div>
+  </div>
+
+  <div class="id-display" id="idDisplay">#0000</div>
   <div class="motion-indicators">
+    <div class="indicator inactive" id="topLeft">Top Left</div>
+    <div class="indicator inactive" id="top">Top</div>
+    <div class="indicator inactive" id="topRight">Top Right</div>
     <div class="indicator inactive" id="left">Left</div>
     <div class="indicator inactive" id="center">Center</div>
     <div class="indicator inactive" id="right">Right</div>
+    <div class="indicator inactive" id="bottomLeft">Bottom Left</div>
+    <div class="indicator inactive" id="bottom">Bottom</div>
+    <div class="indicator inactive" id="bottomRight">Bottom Right</div>
   </div>
-  <div class="container">
+  <div class="container initializing">
     <video class="input_video"></video>
     <div class="canvas-container">
+      <div class="loading-text">INITIALIZING FACE TRACKING...</div>
       <canvas class="output_canvas"></canvas>
     </div>
   </div>
+
+  <audio id="tickSound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
+  <audio id="startupSound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
+  <audio id="readySound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
 
   <script>
     const videoElement = document.querySelector('.input_video');
     const canvasElement = document.querySelector('.output_canvas');
     const canvasCtx = canvasElement.getContext('2d');
-    const labelInput = document.querySelector('.label-input');
+    const idDisplay = document.getElementById('idDisplay');
+    const tickSound = document.getElementById('tickSound');
+    const startupSound = document.getElementById('startupSound');
+    const readySound = document.getElementById('readySound');
+    const container = document.querySelector('.container');
+    const initScreen = document.querySelector('.init-screen');
+    const progress = document.querySelector('.progress');
+    const motionIndicators = document.querySelector('.motion-indicators');
+    const bgParticles = document.querySelector('.bg-particles');
 
-    const leftIndicator = document.getElementById("left");
-    const centerIndicator = document.getElementById("center");
-    const rightIndicator = document.getElementById("right");
+    // Create floating particles
+    function createParticles() {
+      for(let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 5 + 's';
+        bgParticles.appendChild(particle);
+      }
+    }
+
+    createParticles();
+    window.addEventListener('resize', () => {
+      bgParticles.innerHTML = '';
+      createParticles();
+    });
+
+    // Rest of your existing JavaScript code...
+    let progressValue = 0;
+    const progressInterval = setInterval(() => {
+      progressValue += Math.random() * 30;
+      if (progressValue >= 100) {
+        progressValue = 100;
+        clearInterval(progressInterval);
+        startupSound.play();
+        setTimeout(() => {
+          initScreen.classList.add('hide');
+          container.classList.remove('initializing');
+          idDisplay.classList.add('show');
+          motionIndicators.classList.add('show');
+          readySound.play();
+        }, 500);
+      }
+      progress.style.width = `${progressValue}%`;
+    }, 100);
+
+    const indicators = {
+      topLeft: document.getElementById("topLeft"),
+      top: document.getElementById("top"),
+      topRight: document.getElementById("topRight"),
+      left: document.getElementById("left"),
+      center: document.getElementById("center"),
+      right: document.getElementById("right"),
+      bottomLeft: document.getElementById("bottomLeft"),
+      bottom: document.getElementById("bottom"),
+      bottomRight: document.getElementById("bottomRight")
+    };
+
+    function checkMouthOpen(landmarks) {
+      const upperLip = landmarks[13];
+      const lowerLip = landmarks[14];
+      const distance = Math.abs(upperLip.y - lowerLip.y);
+      return distance > 0.07;
+    }
 
     function updateCanvasSize() {
       canvasElement.width = 1280;
@@ -135,23 +535,61 @@
     }
     updateCanvasSize();
 
-    function setIndicator(position) {
-      leftIndicator.classList.remove("active-left", "inactive");
-      centerIndicator.classList.remove("active-center", "inactive");
-      rightIndicator.classList.remove("active-right", "inactive");
+    function generateRandomId() {
+      return Math.floor(Math.random() * (9998 - 1001 + 1)) + 1001;
+    }
 
-      if (position === "left") {
-        leftIndicator.classList.add("active-left");
-        centerIndicator.classList.add("inactive");
-        rightIndicator.classList.add("inactive");
-      } else if (position === "right") {
-        rightIndicator.classList.add("active-right");
-        leftIndicator.classList.add("inactive");
-        centerIndicator.classList.add("inactive");
+    function animateCounter(targetId) {
+      let current = 0;
+      const duration = 3000; // 3 seconds
+      const interval = 50; // Update every 50ms
+      const steps = duration / interval;
+      const increment = targetId / steps;
+      
+      const counter = setInterval(() => {
+        current += increment;
+        if (current >= targetId) {
+          clearInterval(counter);
+          current = targetId;
+        }
+        idDisplay.textContent = `#${Math.floor(current).toString().padStart(4, '0')}`;
+        tickSound.currentTime = 0;
+        tickSound.play();
+      }, interval);
+    }
+
+    let assignedId;
+    setTimeout(() => {
+      videoElement.addEventListener('loadeddata', () => {
+        container.classList.remove('loading');
+        assignedId = generateRandomId();
+        animateCounter(assignedId);
+      });
+    }, 1000);
+
+    function setIndicator(position) {
+      Object.entries(indicators).forEach(([key, element]) => {
+        element.classList.remove("active", "inactive");
+        element.classList.add(key === position ? "active" : "inactive");
+      });
+    }
+
+    function getPosition(avgX, avgY) {
+      const xThreshold = 0.33;
+      const yThreshold = 0.33;
+
+      if (avgY < yThreshold) {
+        if (avgX < xThreshold) return "topLeft";
+        if (avgX > 1 - xThreshold) return "topRight";
+        return "top";
+      } else if (avgY > 1 - yThreshold) {
+        if (avgX < xThreshold) return "bottomLeft";
+        if (avgX > 1 - xThreshold) return "bottomRight";
+        return "bottom";
       } else {
-        centerIndicator.classList.add("active-center");
-        leftIndicator.classList.add("inactive");
-        rightIndicator.classList.add("inactive");
+        if (avgX < xThreshold) return "left";
+        if (avgX > 1 - xThreshold) return "right";
+        return "center";
       }
     }
 
@@ -164,7 +602,7 @@
         const landmarks = results.multiFaceLandmarks[0];
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        let sumX = 0;
+        let sumX = 0, sumY = 0;
 
         for (const landmark of landmarks) {
           minX = Math.min(minX, landmark.x);
@@ -172,6 +610,7 @@
           maxX = Math.max(maxX, landmark.x);
           maxY = Math.max(maxY, landmark.y);
           sumX += landmark.x;
+          sumY += landmark.y;
         }
 
         const boxX = minX * canvasElement.width;
@@ -179,29 +618,22 @@
         const boxWidth = (maxX - minX) * canvasElement.width;
         const boxHeight = (maxY - minY) * canvasElement.height;
         const avgX = sumX / landmarks.length;
+        const avgY = sumY / landmarks.length;
 
-        canvasCtx.strokeStyle = '#3b82f6';
-        canvasCtx.lineWidth = 5;
+        canvasCtx.strokeStyle = '#00b464';
+        canvasCtx.lineWidth = 3;
         canvasCtx.beginPath();
         canvasCtx.roundRect(boxX, boxY, boxWidth, boxHeight, 20);
         canvasCtx.stroke();
 
-        canvasCtx.font = 'bold 48px Inter';
-        canvasCtx.fillStyle = '#ffffff';
+        // Draw ID above head with counter animation
+        canvasCtx.font = 'bold 48px "VT323"';
+        canvasCtx.fillStyle = '#00b464';
         canvasCtx.textAlign = 'center';
         canvasCtx.textBaseline = 'bottom';
+        canvasCtx.fillText(idDisplay.textContent, boxX + boxWidth / 2, boxY - 20);
 
-        const textX = boxX + boxWidth / 2;
-        const textY = boxY - 20;
-        canvasCtx.fillText(labelInput.value || '', textX, textY);
-
-        if (avgX < 0.4) {
-          setIndicator("right");
-        } else if (avgX > 0.6) {
-          setIndicator("left");
-        } else {
-          setIndicator("center");
-        }
+        setIndicator(getPosition(avgX, avgY));
       } else {
         setIndicator("center");
       }
@@ -213,6 +645,7 @@
     faceMesh.setOptions({maxNumFaces: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5});
     faceMesh.onResults(onResults);
 
+    container.classList.add('loading');
     new Camera(videoElement, {onFrame: async () => await faceMesh.send({image: videoElement}), width: 1280, height: 720}).start();
   </script>
 </body>
