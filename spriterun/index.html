@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Face Movement Chase Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      font-family: 'Poppins', sans-serif;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: 
+        linear-gradient(#1a1a2e 2px, transparent 2px),
+        linear-gradient(90deg, #1a1a2e 2px, transparent 2px);
+      background-size: 40px 40px;
+      animation: gridMove 20s linear infinite;
+      opacity: 0.3;
+      transform: rotate(45deg);
+    }
+
+    @keyframes gridMove {
+      from { transform: translateY(-50%) rotate(45deg); }
+      to { transform: translateY(0) rotate(45deg); }
+    }
+
+    body::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(76,127,255,0.15), transparent 70%);
+      animation: glowPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    .container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-screen {
+      text-align: center;
+      animation: fadeIn 1s ease-in;
+      position: relative;
+      z-index: 1;
+    }
+
+    .play-button {
+      padding: 15px 40px;
+      font-size: 1.2em;
+      background: linear-gradient(45deg, #4C7FFF, #2E5CFF);
+      border: none;
+      border-radius: 25px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(76, 127, 255, 0.4);
+      transition: all 0.3s ease;
+      animation: glowPulse 2s infinite;
+    }
+
+    .play-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(76, 127, 255, 0.6);
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 5px 15px rgba(76, 127, 255, 0.4); }
+      50% { box-shadow: 0 5px 25px rgba(76, 127, 255, 0.7); }
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 0.5em;
+      text-align: center;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      animation: fadeIn 1s ease-in;
+      background: linear-gradient(45deg, #fff, #4C7FFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    canvas {
+      border: 3px solid rgba(76,127,255,0.3);
+      border-radius: 10px;
+      box-shadow: 0 0 30px rgba(76, 127, 255, 0.2);
+      background: rgba(0,0,0,0.5);
+      animation: scaleIn 0.5s ease-out;
+      backdrop-filter: blur(5px);
+    }
+
+    .controls {
+      margin: 20px 0;
+      padding: 25px;
+      background: rgba(0,0,0,0.7);
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      animation: slideIn 0.5s ease-out;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 5px 15px rgba(76,127,255,0.2);
+      border: 1px solid rgba(76,127,255,0.2);
+    }
+
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.9em;
+      color: rgba(255,255,255,0.9);
+    }
+
+    input[type="range"] {
+      width: 200px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(76,127,255,0.2);
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    select {
+      width: 200px;
+      height: 35px;
+      padding: 5px 10px;
+      color: white;
+      background: rgba(76,127,255,0.2);
+      border: 1px solid rgba(76,127,255,0.3);
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    input[type="range"]:hover, select:hover {
+      background: rgba(76,127,255,0.3);
+    }
+
+    video {
+      display: none;
+    }
+
+    .score {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      color: #4C7FFF;
+      animation: scoreGlow 2s infinite;
+    }
+
+    @keyframes scoreGlow {
+      0%, 100% { text-shadow: 0 0 10px rgba(76, 127, 255, 0.5); }
+      50% { text-shadow: 0 0 20px rgba(76, 127, 255, 0.8); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes collect {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); filter: brightness(1.5); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes repel {
+      0% { transform: scale(1); }
+      50% { transform: scale(0.7); }
+      100% { transform: scale(1); }
+    }
+
+    .camera-permission {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      background: rgba(0,0,0,0.7);
+      border-radius: 10px;
+      margin: 20px;
+      border: 1px solid rgba(76,127,255,0.2);
+      box-shadow: 0 0 20px rgba(76,127,255,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="welcome-screen">
+    <h1>Face Movement Chase Game</h1>
+    <button class="play-button">Play Game</button>
+  </div>
+
+  <div class="camera-permission">
+    <h2>Camera Access Required</h2>
+    <p>Please allow camera access to play the game</p>
+  </div>
+
+  <div class="container">
+    <div class="score">Score: <span id="scoreDisplay">0</span></div>
+    <div class="controls">
+      <label>
+        Difficulty Level:
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+          <option value="insane">Insane</option>
+        </select>
+      </label>
+      <label>
+        Run Away Speed:
+        <input type="range" id="chaseSpeed" min="0.1" max="10" step="0.1" value="5">
+      </label>
+      <label>
+        Escape Distance:
+        <input type="range" id="escapeSpeed" min="50" max="300" step="10" value="200">
+      </label>
+      <label>
+        Face Movement Sensitivity:
+        <input type="range" id="sensitivity" min="0.5" max="5" step="0.1" value="2">
+      </label>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <video id="video"></video>
+
+    <audio id="collectSound" src="https://assets.mixkit.co/active_storage/sfx/2019/collect-item.wav"></audio>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const videoElement = document.getElementById('video');
+    const collectSound = document.getElementById('collectSound');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const difficultySelect = document.getElementById('difficulty');
+    const container = document.querySelector('.container');
+    const welcomeScreen = document.querySelector('.welcome-screen');
+    const cameraPermission = document.querySelector('.camera-permission');
+    const playButton = document.querySelector('.play-button');
+    
+    const chaseSpeedControl = document.getElementById('chaseSpeed');
+    const escapeSpeedControl = document.getElementById('escapeSpeed');
+    const sensitivityControl = document.getElementById('sensitivity');
+
+    let score = 0;
+    let gameStarted = false;
+    let initialFacePosition = null;
+
+    class Target {
+      constructor() {
+        this.width = 20;
+        this.height = 20;
+        this.color = '#FF4C4C';
+        this.glowColor = '#FF000055';
+        this.velocity = {
+          x: (Math.random() - 0.5) * 4,
+          y: (Math.random() - 0.5) * 4
+        };
+        this.friction = 0.98;
+        this.originalVelocity = {...this.velocity};
+        this.spawnAwayFromChaser();
+        this.isRepelling = false;
+        this.repelTimer = null;
+      }
+
+      spawnAwayFromChaser() {
+        let minDistance = 300;
+        do {
+          this.x = Math.random() * (canvas.width - this.width) + this.width/2;
+          this.y = Math.random() * (canvas.height - this.height) + this.height/2;
+          const dx = this.x - canvas.width/2;
+          const dy = this.y - canvas.height/2;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if(distance > minDistance) break;
+        } while(true);
+      }
+
+      update(playerX, playerY) {
+        // Repel from player
+        const dx = this.x - playerX;
+        const dy = this.y - playerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if(distance < 150) { // Repel when close
+          this.isRepelling = true;
+          const repelForce = 5;
+          this.velocity.x += (dx / distance) * repelForce;
+          this.velocity.y += (dy / distance) * repelForce;
+          
+          // Reduce velocity by 20%
+          this.velocity.x *= 0.8;
+          this.velocity.y *= 0.8;
+
+          // Clear existing timer
+          if(this.repelTimer) clearTimeout(this.repelTimer);
+          
+          // Set timer to restore original velocity after 5 seconds
+          this.repelTimer = setTimeout(() => {
+            this.velocity = {...this.originalVelocity};
+          }, 5000);
+        } else {
+          this.isRepelling = false;
+        }
+
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+
+        if(this.x <= this.width/2 || this.x >= canvas.width - this.width/2) {
+          this.velocity.x *= -this.friction;
+          this.x = this.x <= this.width/2 ? this.width/2 : canvas.width - this.width/2;
+        }
+        if(this.y <= this.height/2 || this.y >= canvas.height - this.height/2) {
+          this.velocity.y *= -this.friction;
+          this.y = this.y <= this.height/2 ? this.height/2 : canvas.height - this.height/2;
+        }
+
+        // Apply friction
+        this.velocity.x *= this.friction;
+        this.velocity.y *= this.friction;
+      }
+
+      draw() {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.glowColor;
+        ctx.fillStyle = this.color;
+        
+        if(this.isRepelling) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.scale(0.7, 0.7);
+          ctx.beginPath();
+          ctx.arc(0, 0, this.width/2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.width/2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    class Player {
+      constructor() {
+        this.width = 30;
+        this.height = 30;
+        this.x = canvas.width/2; // Start in center
+        this.y = canvas.height/2;
+        this.color = '#4C7FFF';
+        this.glowColor = '#4C7FFF88';
+        this.velocity = {x: 0, y: 0};
+      }
+
+      update(faceX, faceY) {
+        if(!initialFacePosition) {
+          initialFacePosition = {x: faceX, y: faceY};
+          return;
+        }
+
+        // Calculate movement relative to initial position
+        const dx = faceX - initialFacePosition.x;
+        const dy = faceY - initialFacePosition.y;
+        
+        const sensitivity = parseFloat(sensitivityControl.value);
+        this.x = canvas.width/2 + dx * canvas.width * sensitivity;
+        this.y = canvas.height/2 + dy * canvas.height * sensitivity;
+        
+        // Keep in bounds
+        this.x = Math.max(this.width/2, Math.min(canvas.width - this.width/2, this.x));
+        this.y = Math.max(this.height/2, Math.min(canvas.height - this.height/2, this.y));
+      }
+
+      checkCollision(target) {
+        const dx = this.x - target.x;
+        const dy = this.y - target.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < (this.width/2 + target.width/2);
+      }
+
+      draw() {
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = this.glowColor;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.width/2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.width/3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    const player = new Player();
+    const target = new Target();
+
+    playButton.addEventListener('click', () => {
+      welcomeScreen.style.display = 'none';
+      cameraPermission.style.display = 'block';
+      
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(() => {
+          cameraPermission.style.display = 'none';
+          container.style.display = 'flex';
+          gameStarted = true;
+          startGame();
+        })
+        .catch(() => {
+          cameraPermission.innerHTML = '<h2>Camera Access Denied</h2><p>Please enable camera access to play</p>';
+        });
+    });
+
+    difficultySelect.addEventListener('change', () => {
+      const difficulty = difficultySelect.value;
+      switch(difficulty) {
+        case 'easy':
+          target.velocity = {x: 2, y: 2};
+          target.friction = 0.98;
+          break;
+        case 'medium':
+          target.velocity = {x: 4, y: 4};
+          target.friction = 0.99;
+          break;
+        case 'hard':
+          target.velocity = {x: 6, y: 6};
+          target.friction = 0.995;
+          break;
+        case 'insane':
+          target.velocity = {x: 8, y: 8};
+          target.friction = 0.998;
+          break;
+      }
+      target.originalVelocity = {...target.velocity};
+    });
+
+    function gameLoop() {
+      if(!gameStarted) return;
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      target.update(player.x, player.y);
+      
+      if(player.checkCollision(target)) {
+        collectSound.currentTime = 0;
+        collectSound.play();
+        score += 10;
+        scoreDisplay.textContent = score;
+        target.spawnAwayFromChaser();
+        canvas.style.animation = 'collect 0.3s ease-out';
+        setTimeout(() => canvas.style.animation = '', 300);
+      }
+      
+      player.draw();
+      target.draw();
+      
+      requestAnimationFrame(gameLoop);
+    }
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    faceMesh.onResults((results) => {
+      if(!gameStarted) return;
+      
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        
+        let sumX = 0, sumY = 0;
+        landmarks.forEach(landmark => {
+          sumX += landmark.x;
+          sumY += landmark.y;
+        });
+        const avgX = sumX / landmarks.length;
+        const avgY = sumY / landmarks.length;
+        
+        player.update(avgX, avgY);
+      }
+    });
+
+    function startGame() {
+      const camera = new Camera(videoElement, {
+        onFrame: async () => await faceMesh.send({image: videoElement}),
+        width: 1280,
+        height: 720
+      });
+      
+      camera.start();
+      gameLoop();
+    }
+  </script>
+</body>
+</html>
