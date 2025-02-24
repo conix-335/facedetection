@@ -110,9 +110,14 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      aspect-ratio: 16/9;
       width: 100%;
       position: relative;
+    }
+
+    @media (min-width: 768px) {
+      .canvas-container {
+        aspect-ratio: 16/9;
+      }
     }
 
     .output_canvas {
@@ -513,10 +518,23 @@
     }
 
     function updateCanvasSize() {
-      canvasElement.width = 1280;
-      canvasElement.height = 720;
+      // Check if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // For mobile, use the actual video dimensions
+        canvasElement.width = videoElement.videoWidth || 720;
+        canvasElement.height = videoElement.videoHeight || 1280;
+      } else {
+        // For desktop, use 16:9 ratio
+        canvasElement.width = 1280;
+        canvasElement.height = 720;
+      }
     }
-    updateCanvasSize();
+    
+    // Update canvas size when video loads
+    videoElement.addEventListener('loadedmetadata', updateCanvasSize);
+    window.addEventListener('resize', updateCanvasSize);
 
     function generateRandomId() {
       return Math.floor(Math.random() * (9998 - 1001 + 1)) + 1001;
@@ -646,7 +664,17 @@
     faceMesh.onResults(onResults);
 
     container.classList.add('loading');
-    new Camera(videoElement, {onFrame: async () => await faceMesh.send({image: videoElement}), width: 1280, height: 720}).start();
+    
+    // Check if mobile device for camera settings
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const cameraSettings = isMobile ? 
+      { facingMode: "user" } : // Front camera for mobile
+      { width: 1280, height: 720 }; // 16:9 for desktop
+    
+    new Camera(videoElement, {
+      onFrame: async () => await faceMesh.send({image: videoElement}),
+      ...cameraSettings
+    }).start();
   </script>
 </body>
 </html>
