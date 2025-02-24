@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Random Notification Game</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .notification {
+            position: fixed;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            display: none;
+            color: #e0e0e0;
+        }
+        .notification::before {
+            content: "⚠️";
+            margin-right: 10px;
+        }
+        .buttons {
+            margin-top: 10px;
+            text-align: center;
+        }
+        button {
+            margin: 0 5px;
+            padding: 5px 15px;
+            cursor: pointer;
+            background-color: #404040;
+            color: #e0e0e0;
+            border: 1px solid #505050;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #505050;
+        }
+        #game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            background: rgba(0,0,0,0.9);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #ff4444;
+            box-shadow: 0 0 50px rgba(255,68,68,0.5);
+        }
+        #game-over > div:first-child {
+            color: #ff4444;
+            text-shadow: 4px 4px 8px rgba(255,68,68,0.5);
+            font-family: 'Impact', sans-serif;
+            letter-spacing: 4px;
+            font-weight: bold;
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 1s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .instructions {
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 18px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transform: perspective(1000px) rotateX(0deg);
+            transition: transform 0.3s ease;
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .instructions:hover {
+            transform: perspective(1000px) rotateX(5deg);
+        }
+        .instructions h1 {
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+            to { text-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 0 0 30px rgba(255, 255, 255, 0.5); }
+        }
+        #start-button, #restart-button {
+            font-size: 24px;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #2196F3, #00BCD4);
+            border: none;
+            color: white;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        #start-button:hover, #restart-button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #00BCD4, #2196F3);
+        }
+        .game-over-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        #timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 36px;
+            color: #00ff88;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            animation: pulse 1s ease-in-out infinite;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .game-over-message {
+            font-size: 28px;
+            margin-top: 20px;
+            color: #ff4444;
+            text-shadow: 2px 2px 4px rgba(255,68,68,0.3);
+            background: rgba(255,68,68,0.1);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,68,68,0.3);
+        }
+        .instructions ul {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px 40px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .instructions li {
+            margin: 10px 0;
+            position: relative;
+            padding-left: 10px;
+        }
+        .instructions li::before {
+            content: "→";
+            position: absolute;
+            left: -20px;
+            color: #00BCD4;
+        }
+    </style>
+</head>
+<body>
+    <div id="timer">Time Left = 40</div>
+    <div id="start-screen">
+        <div class="instructions">
+            <h1>Data Privacy Game</h1>
+            <p>Your personal data is under attack! Suspicious notifications are trying to leak your private information.</p>
+            <p>Instructions:</p>
+            <ul style="text-align: left;">
+                <li>You have 40 seconds to protect your data!</li>
+                <li>Notifications will pop up trying to share your personal data</li>
+                <li>Click "Private" to keep your data safe</li>
+                <li>NEVER click "Public" or your data will be leaked!</li>
+                <li>Notifications will appear faster and faster</li>
+                <li>Keep your data private until time runs out!</li>
+            </ul>
+        </div>
+        <button id="start-button" onclick="startGame()">Start Game</button>
+    </div>
+
+    <div id="game-over" class="game-over-container">
+        <div>GAME OVER!</div>
+        <div id="game-over-message" class="game-over-message"></div>
+        <button id="restart-button" onclick="restartGame()">Play Again</button>
+    </div>
+
+    <div id="notification-template" class="notification" style="display: none;">
+        <div class="message"></div>
+        <div class="buttons">
+            <button onclick="handlePrivate(this)">Private</button>
+            <button onclick="handlePublic()">Public</button>
+        </div>
+    </div>
+
+    <script>
+        const messages = [
+            "Share your address on youtube?",
+            "Want to share your location with strangers?",
+            "Would you like to give admin access to your account?",
+            "Chat with our hacker?",
+            "Share the name of your home town?",
+            "Share this content with our network?",
+            "Enable camera access?",
+            "Share your maiden name?",
+            "Share your favorite food?",
+            "Share your passwords?",
+            "Share your bank details?",
+            "Share your credit card details?",
+            "Share your social media accounts?",
+            "Share your email address?",
+            "Share your phone number?",
+            "Share your oldest sibling's middle name?",
+            "Share your favorite color?",
+            "Share your favorite movie?",
+            "Share your favorite song?",
+            "Share your favorite food?",
+            "Share your favorite drink?",
+            "Share your favorite sport?",
+            "Share your favorite game?",
+        ];
+
+        let isGameOver = false;
+        let notificationCount = 0;
+        let currentDelay = 1500; // Start with 1.5 seconds instead of 2.5
+        let timeLeft = 40;
+        let timerInterval;
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('timer').style.display = 'block';
+            startTimer();
+            showNotification();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = 'Time Left = ' + timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleGameOver('Oh no! The time ran out. Your data is leaked!');
+                }
+            }, 1000);
+        }
+
+        function handleGameOver(message) {
+            isGameOver = true;
+            document.getElementById('game-over').style.display = 'block';
+            document.getElementById('game-over-message').textContent = message;
+            document.getElementById('timer').style.display = 'none';
+            document.querySelectorAll('.notification').forEach(notification => {
+                if (notification.id !== 'notification-template') {
+                    notification.remove();
+                }
+            });
+        }
+
+        function restartGame() {
+            // Reset game state
+            isGameOver = false;
+            notificationCount = 0;
+            currentDelay = 1500;
+            timeLeft = 40;
+            document.getElementById('timer').textContent = 'Time Left = ' + timeLeft;
+            
+            // Hide game over screen
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('game-over-message').textContent = '';
+            
+            // Remove any remaining notifications
+            document.querySelectorAll('.notification').forEach(notification => {
+                if (notification.id !== 'notification-template') {
+                    notification.remove();
+                }
+            });
+            
+            // Start new game
+            document.getElementById('timer').style.display = 'block';
+            startTimer();
+            showNotification();
+        }
+
+        function showNotification() {
+            if (isGameOver) return;
+            
+            // Clone the template
+            const template = document.getElementById('notification-template');
+            const notification = template.cloneNode(true);
+            notification.id = 'notification-' + notificationCount++;
+            document.body.appendChild(notification);
+            
+            // Random position on screen
+            notification.style.left = Math.random() * (window.innerWidth - 300) + 'px';
+            notification.style.top = Math.random() * (window.innerHeight - 150) + 'px';
+            
+            // Random message
+            notification.querySelector('.message').textContent = messages[Math.floor(Math.random() * messages.length)];
+            
+            notification.style.display = 'block';
+
+            // Decrease delay for next notification (minimum 200ms)
+            currentDelay = Math.max(200, currentDelay * 0.90);
+            
+            // Schedule next notification
+            setTimeout(showNotification, currentDelay);
+        }
+
+        function handlePrivate(button) {
+            // Only hide this specific notification
+            button.closest('.notification').style.display = 'none';
+        }
+
+        function handlePublic() {
+            isGameOver = true;
+            clearInterval(timerInterval);
+            handleGameOver('You exposed your private data!');
+        }
+    </script>
+</body>
+</html>
