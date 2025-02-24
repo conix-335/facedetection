@@ -654,17 +654,30 @@
 
     container.classList.add('loading');
     
-    // Initialize camera with dynamic resolution
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        const track = stream.getVideoTracks()[0];
-        const settings = track.getSettings();
-        new Camera(videoElement, {
-          onFrame: async () => await faceMesh.send({image: videoElement}),
-          width: settings.width,
-          height: settings.height
-        }).start();
-      });
+    // Initialize camera with dynamic resolution and error handling
+    navigator.mediaDevices.getUserMedia({ 
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: "user"
+      }
+    })
+    .then(stream => {
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      new Camera(videoElement, {
+        onFrame: async () => await faceMesh.send({image: videoElement}),
+        width: settings.width,
+        height: settings.height
+      }).start();
+    })
+    .catch(err => {
+      console.error("Camera error:", err);
+      // Show error message to user
+      const loadingText = document.querySelector('.loading-text');
+      loadingText.textContent = "Camera access denied. Please check permissions.";
+      loadingText.style.color = "#ff4444";
+    });
   </script>
 </body>
 </html>
