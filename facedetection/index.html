@@ -700,37 +700,83 @@
 
     container.classList.add('loading');
     
-    // Update camera initialization with better mobile handling
-    navigator.mediaDevices.getUserMedia({ 
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: "user",
-        aspectRatio: { ideal: 1.777777778 }
+    // Add this function to handle camera initialization
+    async function initializeCamera() {
+      try {
+        // First try HD resolution
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "user"
+          }
+        });
+        
+        return stream;
+      } catch (err) {
+        console.log("HD camera failed, trying lower resolution...");
+        
+        try {
+          // If HD fails, try a lower resolution
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: "user"
+            }
+          });
+          
+          return stream;
+        } catch (err) {
+          console.log("Lower resolution failed, trying basic camera...");
+          
+          // If that fails too, try basic camera access
+          return await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
+        }
       }
-    })
-    .then(stream => {
-      videoElement.srcObject = stream;
-      const track = stream.getVideoTracks()[0];
-      const settings = track.getSettings();
-      
-      // Update canvas size when orientation changes
-      window.addEventListener('resize', updateCanvasSize);
-      
-      new Camera(videoElement, {
-        onFrame: async () => {
-          await faceMesh.send({image: videoElement});
-        },
-        width: settings.width,
-        height: settings.height
-      }).start();
-    })
-    .catch(err => {
-      console.error("Camera error:", err);
-      const loadingText = document.querySelector('.loading-text');
-      loadingText.textContent = "Camera error: " + err.message;
-      loadingText.style.color = "#ff4444";
-    });
+    }
+
+    // Replace the existing camera initialization code with this:
+    initializeCamera()
+      .then(stream => {
+        videoElement.srcObject = stream;
+        const track = stream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        
+        console.log("Camera settings:", settings);
+        
+        // Update canvas size when orientation changes
+        window.addEventListener('resize', updateCanvasSize);
+        
+        new Camera(videoElement, {
+          onFrame: async () => {
+            await faceMesh.send({image: videoElement});
+          },
+          width: settings.width,
+          height: settings.height
+        }).start();
+      })
+      .catch(err => {
+        console.error("Final camera error:", err);
+        const loadingText = document.querySelector('.loading-text');
+        loadingText.innerHTML = `Camera error: ${err.message}<br>Please ensure camera permissions are granted and try reloading.`;
+        loadingText.style.color = "#ff4444";
+        
+        // Add a reload button
+        const reloadButton = document.createElement('button');
+        reloadButton.textContent = "Reload Page";
+        reloadButton.style.marginTop = "20px";
+        reloadButton.style.padding = "10px 20px";
+        reloadButton.style.backgroundColor = "#00b464";
+        reloadButton.style.border = "none";
+        reloadButton.style.borderRadius = "5px";
+        reloadButton.style.color = "white";
+        reloadButton.style.cursor = "pointer";
+        reloadButton.onclick = () => window.location.reload();
+        loadingText.appendChild(reloadButton);
+      });
 
     // Add CSS fix for mobile video element
     videoElement.style.width = '100%';
