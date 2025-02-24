@@ -104,6 +104,8 @@
 
     .input_video {
       display: none;
+      width: 1280px;
+      height: 720px;
     }
 
     .canvas-container {
@@ -514,14 +516,8 @@
     }
 
     function updateCanvasSize() {
-      // Get camera stream dimensions
-      const stream = videoElement.srcObject;
-      if (stream) {
-        const track = stream.getVideoTracks()[0];
-        const settings = track.getSettings();
-        canvasElement.width = settings.width;
-        canvasElement.height = settings.height;
-      }
+      canvasElement.width = 1280;
+      canvasElement.height = 720;
     }
 
     function generateRandomId() {
@@ -654,26 +650,17 @@
 
     container.classList.add('loading');
     
-    // Initialize camera with dynamic resolution and error handling
-    navigator.mediaDevices.getUserMedia({ 
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: "user"
-      }
-    })
-    .then(stream => {
-      const track = stream.getVideoTracks()[0];
-      const settings = track.getSettings();
-      new Camera(videoElement, {
-        onFrame: async () => await faceMesh.send({image: videoElement}),
-        width: settings.width,
-        height: settings.height
-      }).start();
-    })
-    .catch(err => {
+    // Initialize camera with fixed resolution
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await faceMesh.send({image: videoElement});
+      },
+      width: 1280,
+      height: 720
+    });
+
+    camera.start().catch(err => {
       console.error("Camera error:", err);
-      // Show error message to user
       const loadingText = document.querySelector('.loading-text');
       loadingText.textContent = "Camera access denied. Please check permissions.";
       loadingText.style.color = "#ff4444";
